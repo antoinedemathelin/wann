@@ -2,7 +2,7 @@
 
 Weighting Adversarial Neural Network
 
-An online demo of the algorithm is available at https://anonymousaccount0.github.io/demo/
+An online demo of the algorithm is available at https://antoinedemathelin.github.io/demo/
 
 Synthetic Experiment Setup |  No Reweighting            
 :-------------------------:|:-------------------------:
