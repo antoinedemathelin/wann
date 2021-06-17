@@ -9,17 +9,19 @@ from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Input, Dropout
 from tensorflow.keras.constraints import MinMaxNorm
 from tensorflow.keras import backend as K
+from tensorflow.keras.optimizers import Adam
 
 from utils import superconduct, domain, BaggingModels, cross_val
-from methods.KLIEP import KLIEP
-from methods.KMM import KMM
-from methods.TrAdaBoostR2_keras import TwoStageTrAdaBoostR2
 from methods.WANN import WANN
 from methods.DANN import DANN
+from methods.MCD import MCD
+from methods.MDD import MDD
+from methods.ADDA import ADDA
+from methods.BalancedWeighting import BalancedWeighting
 
 
 def run_uci_experiments(method, get_base_model, get_encoder, get_task,
-                        C, C_w, epochs, batch_size, n_models, n_jobs,
+                        C, C_w, lambda_, epochs, batch_size, n_models, n_jobs,
                         n_target_labeled, random_state, save, **kwargs):
     """
     Run experiments on superconductivity dataset
@@ -29,10 +31,14 @@ def run_uci_experiments(method, get_base_model, get_encoder, get_task,
     method: str
         name of the method used: should one of the following:
             - NoReweight
-            - TrAdaBoost
             - WANN
             - SrcOnly
             - TgtOnly
+            - ADDA
+            - DANN
+            - MCD
+            - MDD
+            - BalancedWeighting
             
     get_base_model: callable
         constructor for the base learner, should takes
@@ -51,7 +57,7 @@ def run_uci_experiments(method, get_base_model, get_encoder, get_task,
         projecting constant for WANN weighting network
         
     lambda_: float
-        DANN trade-off parameter
+        DANN, MCD, MDD trade-off parameter
         
     epochs: int
         number of epochs
@@ -108,7 +114,6 @@ def run_uci_experiments(method, get_base_model, get_encoder, get_task,
             print("--------- %s ----------"%str(target))
 
             data, X, y, cuts, split_col = superconduct()
-            shape = X.shape[1]
 
             src_index = domain(data, cuts, split_col, source)
             tgt_index = domain(data, cuts, split_col, target)
@@ -121,6 +126,8 @@ def run_uci_experiments(method, get_base_model, get_encoder, get_task,
             std_sc.fit(X[train_index])
             X = std_sc.transform(X)
             y = (y - y[train_index].mean()) / y[train_index].std()
+            
+            shape = X.shape[1]
 
             base_estimator = BaggingModels(func=get_base_model,
                                            n_models=n_models,
@@ -142,43 +149,94 @@ def run_uci_experiments(method, get_base_model, get_encoder, get_task,
                 model = copy.deepcopy(base_estimator)
                 model.fit(X[train_index], y[train_index], **fit_params)
                 
-            if method == "TrAdaBoost":
-                model = TwoStageTrAdaBoostR2(func=get_base_model,
-                                             random_state=random_state,
-                                             n_jobs=n_jobs,
-                                             C=C,
-                                             shape=X.shape[1])
-                model.fit(X, y, [src_index, tgt_train_index], **fit_params)
-                
             if method == "WANN":
+                if C_w is "saved":
+                    path_to_lambda = folder + "/../dataset/cross_val/" + "uci_" + method +".csv"
+                    lambda_df_ = pd.read_csv(path_to_lambda)
+                    C_w_ = lambda_df_.loc[(lambda_df_.source == source) & (lambda_df_.target == target), "param"].values[0]
+                else:
+                    C_w_ = C_w
+                    
+                
                 model = BaggingModels(WANN,
                                       get_base_model=get_base_model,
                                       C=C,
-                                      C_w=C_w,
+                                      C_w=C_w_,
                                       n_models=n_models,
                                       n_jobs=n_jobs,
                                       random_state=random_state)
                 model.fit(X, y, index=[src_index, tgt_train_index], **fit_params)
                 
+            if method == "BalancedWeighting":                
+                model = BaggingModels(BalancedWeighting,
+                                      get_base_model=get_base_model,
+                                      C=C,
+                                      n_models=n_models,
+                                      n_jobs=n_jobs,
+                                      random_state=random_state)
+                model.fit(X, y, index=[src_index, tgt_train_index], **fit_params)
+                
+            if method == "MCD":
+                if lambda_ is "saved":
+                    path_to_lambda = folder + "/../dataset/cross_val/" + "uci_" + method +".csv"
+                    lambda_df_ = pd.read_csv(path_to_lambda)
+                    lambda_p = lambda_df_.loc[(lambda_df_.source == source) & (lambda_df_.target == target), "param"].values[0]
+                else:
+                    lambda_p = lambda_
+                
+                model = BaggingModels(MCD,
+                                      get_encoder=get_encoder,
+                                      get_task=get_task,
+                                      C=C,
+                                      lambda_=lambda_p,
+                                      n_models=n_models,
+                                      n_jobs=n_jobs)
+                model.fit(X, y, index=[src_index, tgt_index, tgt_train_index], **fit_params)
+                
+            if method == "MDD":
+                if lambda_ is "saved":
+                    path_to_lambda = folder + "/../dataset/cross_val/" + "uci_" + method +".csv"
+                    lambda_df_ = pd.read_csv(path_to_lambda)
+                    lambda_p = lambda_df_.loc[(lambda_df_.source == source) & (lambda_df_.target == target), "param"].values[0]
+                else:
+                    lambda_p = lambda_
+                
+
+                model = BaggingModels(MDD,
+                                      get_encoder=get_encoder,
+                                      get_task=get_task,
+                                      C=C,
+                                      lambda_=lambda_p,
+                                      n_models=n_models,
+                                      n_jobs=n_jobs)
+                model.fit(X, y, index=[src_index, tgt_index, tgt_train_index], **fit_params)
+                
+            if method == "ADDA":
+                model = BaggingModels(ADDA,
+                                      optimizer=Adam(0.00001),
+                                      get_encoder=get_encoder,
+                                      get_task=get_task,
+                                      get_discriminer=get_task,
+                                      C=C,
+                                      n_models=n_models,
+                                      n_jobs=n_jobs)
+                model.fit(X, y, index=[src_index, tgt_index, tgt_train_index], **fit_params)
+            
+            
             if method == "DANN":
-                if lambda_ is None:
-                    try:
-                        lambda_ = DICT_DANN[str(source) + "_" + str(target)]
-                    except:
-                        lambda_ = cross_val("DANN", X, y, src_index, None, tgt_train_index,
-                                            params=[0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1],
-                                            fit_params=fit_params, cv=5,
-                                            get_encoder=get_encoder, get_task=get_task)
-                        try:
-                            DICT_DANN[str(source) + "_" + str(target)] = lambda_
-                        except:
-                            pass
-                print("lambda: %.3f"%lambda_)
+                if lambda_ is "saved":
+                    path_to_lambda = folder + "/../dataset/cross_val/" + "uci_" + method +".csv"
+                    lambda_df_ = pd.read_csv(path_to_lambda)
+                    lambda_p = lambda_df_.loc[(lambda_df_.source == source) & (lambda_df_.target == target), "param"].values[0]
+                else:
+                    lambda_p = lambda_
+                
+                
                 model = BaggingModels(DANN,
                                       get_encoder=get_encoder,
                                       get_task=get_task,
                                       C=C,
-                                      lambda_=lambda_,
+                                      lambda_=lambda_p,
                                       n_models=n_models,
                                       n_jobs=n_jobs,
                                       random_state=random_state)
@@ -232,24 +290,22 @@ def get_task(shape, C=1, activation=None, name="task"):
 
 
 if __name__ == "__main__":
-    
-    DICT_DANN = {}
-    
+        
     get_base_model=get_base_model
     get_encoder=get_encoder
     get_task=get_task
     C=1
-    C_w=0.1
-    lambda_=None
+    C_w="saved"
+    lambda_= "saved"
     epochs=200
     batch_size=1000
     n_models=1
     n_jobs=None
     n_target_labeled=10
     save=True
-    
-    for method in ["WANN", "NoReweight", "TgtOnly", "SrcOnly", "TrAdaBoost", "DANN"]:
-        for state in range(10):
+            
+    for state in range(10):
+        for method in ["WANN", "NoReweight", "TgtOnly", "SrcOnly", "DANN", "ADDA", "MCD", "MDD"]:
             run_uci_experiments(method=method,
                                 get_base_model=get_base_model,
                                 get_encoder=get_encoder,

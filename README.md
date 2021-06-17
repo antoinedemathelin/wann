@@ -2,20 +2,12 @@
 
 Weighting Adversarial Neural Network
 
-An online demo of the algorithm is available at https://antoinedemathelin.github.io/demo/
+An online demo of the algorithm is available at https://anonymousaccount0.github.io/demo/
 
-Synthetic Experiment Setup |  No Reweighting            
-:-------------------------:|:-------------------------:
-<img src="images/toy_setup.png" width="350px" height="180px"> | <img src="images/noreweight.gif" width="400px" height="200px">
-**TrAdaBoostR2**          |  **WANN**         
-| <img src="images/tradalong100.gif" width="400px" height="200px">  |  <img src="images/wann.gif" width="400px" height="200px">
+
 
 WANN is a supervised domain adaptation method suited for regression tasks. The algorithm is an instance-based method which learns a reweighting of source instance losses in order to correct the difference between source and target distributions.
 
-
-![model](images/paint_wann_algo_v2.jpg)
-
-WANN algorithm consists to train three networks in parallel in the same gradient descent. The *weighting* network *W* learns the source instances weights which are multiplied to the source losses of the *task* and *discrepancy* networks *ht* and *hd*. The last network, which estimates the *Y*-discrepancy between the reweighted source and target instances, is trained with an opposite objective function (*-G*) than the two others. This is done by using a Reversal Gradient Layer (RGL) in bold on the Figure.
 
 ## Requirements
 
@@ -31,6 +23,8 @@ The file `environment.yml` can be used to reproduce the same conda environment a
 
 `$ conda env create -f environment.yml`
 
+> :warning: The environment has been built on Windows, it seems that the above command line does not work on Ubuntu. If you use this operating system, please create a new environment and install the above packages using `conda install` or `pip install`.
+
 ## Experiments
 
 WANN algorithm is compared to several instances-based domain adaptation base-lines:
@@ -45,13 +39,7 @@ The implementation of the methods can be found in the `wann\methods` folder. For
 The experiments are conducted on one synthetic and three benchmark datasets:
 - Superconductivity [UCI](https://archive.ics.uci.edu/ml/datasets/superconductivty+data#)
 - Kin 8xy family [Delve project](http://www.cs.toronto.edu/~delve/data/datasets.html)
-- Amazon reviews [cs.jhu](https://www.cs.jhu.edu/~mdredze/datasets/sentiment/index2.html)
 
-### Synthetic Experiment
-
-The code of the synthetic experiment can be found in the following notebook `notebooks\Toy_experiments.ipynb`
-
-![comp](images/toy.png)
 
 ### Superconductivity Experiments
 
@@ -59,7 +47,6 @@ Running superconductivity experiments can be done in two ways:
 - In the command line with: `$ python wann\uci_experiments.py`
 - Within the following notebooks: `notebooks\UCI_experiments.ipynb`
 
-![uci](images/superconductivity.PNG)
 
 ### Kin Experiments
 
@@ -67,13 +54,4 @@ Running kin experiments can be done in two ways:
 - In the command line with: `$ python wann\kin_experiments.py`
 - Within the following notebooks: `notebooks\Kin_experiments.ipynb`
 
-![kin](images/kin.PNG)
-
-### Sentiment Analysis Experiments
-
-Running sentiment analysis experiments can be done in two ways:
-- In the command line with: `$ python wann\sa_experiments.py`
-- Within the following notebooks: `notebooks\sa_experiments.ipynb`
-
-![sa](images/sa.PNG)
 

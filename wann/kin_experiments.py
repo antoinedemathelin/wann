@@ -9,17 +9,18 @@ from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Input, Dropout
 from tensorflow.keras.constraints import MinMaxNorm
 from tensorflow.keras import backend as K
+from tensorflow.keras.optimizers import Adam
 
 from utils import kin, BaggingModels, cross_val
 from methods.KLIEP import KLIEP
 from methods.KMM import KMM
 from methods.TrAdaBoostR2_keras import TwoStageTrAdaBoostR2
 from methods.WANN import WANN
-from methods.DANN import DANN
+from methods.BalancedWeighting import BalancedWeighting
 
 
-def run_kin_experiments(method, get_base_model, get_encoder, get_task,
-                        C, C_w, lambda_, sigma, epochs, batch_size, n_models, n_jobs,
+def run_kin_experiments(method, get_base_model,
+                        C, C_w, sigma, epochs, batch_size, n_models, n_jobs,
                         n_source, n_target_unlabeled, n_target_labeled,
                         n_target_test, random_state, save):
     """
@@ -35,25 +36,17 @@ def run_kin_experiments(method, get_base_model, get_encoder, get_task,
             - GDM
             - TrAdaBoost
             - WANN
+            - BalancedWeighting
             
     get_base_model: callable
         constructor for the base learner, should takes
         C, shape, activation and name as arguments
-        
-    get_encoder: callable
-        constructor for the DANN encoder network
-        
-    get_task: callable
-        constructor for the DANN task network
         
     C: float
         projecting constant for networks (args of get_base_model)
         
     C_w: float
         projecting constant for WANN
-        
-    lambda_: float
-        DANN trade-off parameter
         
     sigma: float
         kernel bandwith for KMM
@@ -149,19 +142,6 @@ def run_kin_experiments(method, get_base_model, get_encoder, get_task,
                 model.fit(X[train_index], y[train_index], **fit_params)
             
             if method == "KMM":                
-                if sigma is None:
-                    try:
-                        sigma = DICT_KMM[source[-2:] + "_" + target[-2:]]
-                    except:
-                        sigma = cross_val("KMM", X, y, src_index, tgt_index, tgt_train_index,
-                                          params=[2**(i-5) for i in range(10)],
-                                          fit_params=fit_params, cv=5,
-                                          estimator=base_estimator)
-                        try:
-                            DICT[source[-2:] + "_" + target[-2:]] = sigma
-                        except:
-                            pass
-                print("sigma: %.3f"%sigma)
                 model = KMM(base_estimator, sigma=sigma)
                 model.fit(X, y, index=[src_index, tgt_index, tgt_train_index], **fit_params)
                 
@@ -187,29 +167,16 @@ def run_kin_experiments(method, get_base_model, get_encoder, get_task,
                                       random_state=random_state)
                 model.fit(X, y, index=[src_index, tgt_train_index], **fit_params)
                 
-            if method == "DANN":
-                if lambda_ is None:
-                    try:
-                        lambda_ = DICT_DANN[source[-2:] + "_" + target[-2:]]
-                    except:
-                        lambda_ = cross_val("DANN", X, y, src_index, tgt_index, tgt_train_index,
-                                            params=[0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1],
-                                            fit_params=fit_params, cv=5,
-                                            get_encoder=get_encoder, get_task=get_task)
-                        try:
-                            DICT_DANN[source[-2:] + "_" + target[-2:]] = lambda_
-                        except:
-                            pass
-                print("lambda: %.3f"%lambda_)
-                model = BaggingModels(DANN,
-                                      get_encoder=get_encoder,
-                                      get_task=get_task,
+                
+            if method == "BalancedWeighting":                
+                model = BaggingModels(BalancedWeighting,
+                                      get_base_model=get_base_model,
                                       C=C,
-                                      lambda_=lambda_,
                                       n_models=n_models,
                                       n_jobs=n_jobs,
                                       random_state=random_state)
-                model.fit(X, y, index=[src_index, tgt_index, tgt_train_index], **fit_params)
+                model.fit(X, y, index=[src_index, tgt_train_index], **fit_params)
+
                 
             y_pred = model.predict(X)
             score = mean_squared_error(y[tgt_test_index], y_pred[tgt_test_index])
@@ -241,43 +208,12 @@ def get_base_model(shape, activation=None, C=1, name="BaseModel"):
     return model
 
 
-def get_encoder(shape, C=1, name="encoder"):
-    inputs = Input(shape=(shape,))
-    modeled = Dense(100, activation='relu',
-                         kernel_constraint=MinMaxNorm(0, C),
-                         bias_constraint=MinMaxNorm(0, C))(inputs)
-    modeled = Dropout(0.5)(modeled)
-    modeled = Dense(10, activation='relu',
-                         kernel_constraint=MinMaxNorm(0, C),
-                         bias_constraint=MinMaxNorm(0, C))(modeled)
-    modeled = Dropout(0.2)(modeled)
-    model = Model(inputs, modeled)
-    model.compile(optimizer="adam", loss='mean_squared_error')
-    return model
-
-
-def get_task(shape, C=1, activation=None, name="task"):
-    inputs = Input(shape=(shape,))
-    modeled = Dense(1, activation=activation,
-                         kernel_constraint=MinMaxNorm(0, C),
-                         bias_constraint=MinMaxNorm(0, C))(inputs)
-    model = Model(inputs, modeled)
-    model.compile(optimizer="adam", loss='mean_squared_error')
-    return model
-
-
 if __name__ == "__main__":
     
-    DICT_KMM = {}
-    DICT_DANN = {}
-
     get_base_model=get_base_model
-    get_encoder=get_encoder
-    get_task=get_task
     C=1
     C_w=1
-    lambda_=None
-    sigma=None
+    sigma=0.1
     epochs=300
     batch_size=32
     n_models=1
@@ -289,14 +225,11 @@ if __name__ == "__main__":
     save=True
               
     for state in range(10):
-        for method in ["WANN", "NoReweight", "DANN", "TrAdaBoost", "KLIEP", "KMM"]:
+        for method in ["KLIEP", "KMM", "WANN", "NoReweight", "BalancedWeighting", "TrAdaBoost"]:
             run_kin_experiments(method=method,
                                     get_base_model=get_base_model,
-                                    get_encoder=get_encoder,
-                                    get_task=get_task,
                                     C=C,
                                     C_w=C_w,
-                                    lambda_=lambda_,
                                     sigma=sigma,
                                     epochs=epochs,
                                     batch_size=batch_size,

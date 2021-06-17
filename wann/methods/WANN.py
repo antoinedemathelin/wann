@@ -58,7 +58,7 @@ class _GradReverse(tf.keras.layers.Layer):
         super().__init__()
 
     def call(self, x):
-        return _grad_reverse(x)   
+        return _grad_reverse(x)
     
     
 def _get_default_model(shape, activation=None, C=1, name="DefaultModel"):
@@ -88,21 +88,10 @@ class WANN(object):
     Y-discrepancy distance between source and target distributions
     
     WANN involves three networks:
-        - W: the weighting network which learns the source weights.
-        - h_t: the task network which learns the task.
-        - h_d: the discrepancy network which is used to estimate a distance 
-               between the reweighted source and target distributions: the Y-discrepancy
-    
-    WANN objective function is composed of the average loss on the source instances and
-    the estimated Y-discrepancy distance between the reweighted source and target instances.
-    
-    .. math:: G(W, h_t, h_d) = \sum_{(x_i, y_i) \in S} W(x_i) (h_t(x_i)-y_i)^2 
-    + \sum_{(x_i, y_i) \in T} (h_t(x_i)-y_i)^2 
-    + \left|\sum_{(x_i, y_i) \in S} W(x_i) (h_d(x_i)-y_i)^2
-    - \sum_{(x_j, y_j) \in T}(h_d(x_j)-y_j)^2 \right|^2
-    
-    A reversal layer is placed at the output of h_d, thus W and h_t are trained in order to
-    minimize G, whereas h_d is trained to optimize it.
+        - the weighting network which learns the source weights.
+        - the task network which learns the task.
+        - the discrepancy network which is used to estimate a distance 
+          between the reweighted source and target distributions: the Y-discrepancy
     
     Parameters
     ----------
@@ -210,7 +199,8 @@ class WANN(object):
                                               for i in range(max_size)])
                      
         # Create WANN model
-        self._create_wann(shape=X.shape[1])
+        if not hasattr(self, "model"):
+            self._create_wann(shape=X.shape[1])
 
         # Callback to save predicted weights and labels
         callbacks = []
@@ -267,11 +257,17 @@ class WANN(object):
         loss_disc_t = K.mean(multiply([weights_target, K.square(output_target - output_disc_t)]))
             
         loss_task = loss_task_s + loss_task_t
-        loss_disc = K.square(loss_disc_s - loss_disc_t)
+        loss_disc = loss_disc_t - loss_disc_s
                          
         loss = loss_task + loss_disc
    
         self.model.add_loss(loss)
+        self.model.add_metric(tf.reduce_sum(K.mean(weights_source)), name="weights", aggregation="mean")
+        self.model.add_metric(tf.reduce_sum(loss_task_s), name="task_s", aggregation="mean")
+        self.model.add_metric(tf.reduce_sum(loss_task_t), name="task_t", aggregation="mean")
+        self.model.add_metric(tf.reduce_sum(loss_disc), name="disc", aggregation="mean")
+        self.model.add_metric(tf.reduce_sum(loss_disc_s), name="disc_s", aggregation="mean")
+        self.model.add_metric(tf.reduce_sum(loss_disc_t), name="disc_t", aggregation="mean")
         self.model.compile(optimizer=self.optimizer)
         return self
     
