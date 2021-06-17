@@ -4,10 +4,9 @@ Weighting Adversarial Neural Network
 
 An online demo of the algorithm is available at https://antoinedemathelin.github.io/demo/
 
-
-
 WANN is a supervised domain adaptation method suited for regression tasks. The algorithm is an instance-based method which learns a reweighting of source instance losses in order to correct the difference between source and target distributions.
 
+This repository is an implementation of [Weighting Adversarial Neural Network for Domain Adaptation in Regression](https://arxiv.org/abs/2006.08251)
 
 ## Requirements
 
