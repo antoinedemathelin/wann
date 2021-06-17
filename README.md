@@ -16,7 +16,6 @@ Code for the numerical experiments requires the following packages:
 - `scikit-learn`
 - `numpy`
 - `cvxopt`
-- `nltk` (for sentiment analysis pre-processing)
 - `matplotlib` (for visualization)
 
 The file `environment.yml` can be used to reproduce the same conda environment as the one used to conduct the experiments with the following command line:
@@ -33,13 +32,21 @@ WANN algorithm is compared to several instances-based domain adaptation base-lin
   - TrAdaBoostR2 [Pardoe et al.](http://www.cs.utexas.edu/~pstone/Papers/bib2html/b2hd-ICML10-pardoe.html)
   - GDM [Cortes et al.](http://jmlr.org/papers/volume20/15-192/15-192.pdf)
   - DANN [Ganin et al.](https://arxiv.org/pdf/1505.07818.pdf)
+  - ADDA [Tzeng et al.](https://arxiv.org/pdf/1702.05464.pdf)
+  - MCD [Saito et al.](https://arxiv.org/pdf/1712.02560.pdf)
+  - MDD [Zhang et al.](https://arxiv.org/pdf/1904.05801.pdf)
 
 The implementation of the methods can be found in the `wann\methods` folder. For GDM, code can be found at https://cims.nyu.edu/~munoz/ 
 
 The experiments are conducted on one synthetic and three benchmark datasets:
+- WebCamT [CityCam](https://www.citycam-cmu.com/dataset)
 - Superconductivity [UCI](https://archive.ics.uci.edu/ml/datasets/superconductivty+data#)
 - Kin 8xy family [Delve project](http://www.cs.toronto.edu/~delve/data/datasets.html)
 
+### WebCamT Experiments
+
+Running WebCamT experiments can be done:
+- Within the following notebooks: `notebooks\WebCamT.ipynb`
 
 ### Superconductivity Experiments
 
