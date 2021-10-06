@@ -2,11 +2,7 @@
 
 Weighting Adversarial Neural Network
 
-An online demo of the algorithm is available at https://antoinedemathelin.github.io/demo/
-
 WANN is a supervised domain adaptation method suited for regression tasks. The algorithm is an instance-based method which learns a reweighting of source instance losses in order to correct the difference between source and target distributions.
-
-This repository is an implementation of [Weighting Adversarial Neural Network for Domain Adaptation in Regression](https://arxiv.org/abs/2006.08251)
 
 ## Requirements
 
@@ -14,8 +10,11 @@ Code for the numerical experiments requires the following packages:
 - `tensorflow` (>= 2.0)
 - `scikit-learn`
 - `numpy`
-- `cvxopt`
-- `matplotlib` (for visualization)
+- `pandas`
+- `matplotlib`
+- `nltk`
+- `adapt` (https://github.com/adapt-python/adapt)
+
 
 The file `environment.yml` can be used to reproduce the same conda environment as the one used to conduct the experiments with the following command line:
 
@@ -25,39 +24,18 @@ The file `environment.yml` can be used to reproduce the same conda environment a
 
 ## Experiments
 
-WANN algorithm is compared to several instances-based domain adaptation base-lines:
+WANN algorithm is compared to several domain adaptation base-lines:
   - KMM [Huang et al.](http://papers.nips.cc/paper/3075-correcting-sample-selection-bias-by-unlabeled-data.pdf)
   - KLIEP [Sugiyama et al.](https://papers.nips.cc/paper/3248-direct-importance-estimation-with-model-selection-and-its-application-to-covariate-shift-adaptation.pdf)
   - TrAdaBoostR2 [Pardoe et al.](http://www.cs.utexas.edu/~pstone/Papers/bib2html/b2hd-ICML10-pardoe.html)
-  - GDM [Cortes et al.](http://jmlr.org/papers/volume20/15-192/15-192.pdf)
   - DANN [Ganin et al.](https://arxiv.org/pdf/1505.07818.pdf)
   - ADDA [Tzeng et al.](https://arxiv.org/pdf/1702.05464.pdf)
-  - MCD [Saito et al.](https://arxiv.org/pdf/1712.02560.pdf)
   - MDD [Zhang et al.](https://arxiv.org/pdf/1904.05801.pdf)
 
-The implementation of the methods can be found in the `wann\methods` folder. For GDM, code can be found at https://cims.nyu.edu/~munoz/ 
+The implementation of WANN can be found in the `wann\methods` folder.
 
-The experiments are conducted on one synthetic and three benchmark datasets:
-- WebCamT [CityCam](https://www.citycam-cmu.com/dataset)
-- Superconductivity [UCI](https://archive.ics.uci.edu/ml/datasets/superconductivty+data#)
-- Kin 8xy family [Delve project](http://www.cs.toronto.edu/~delve/data/datasets.html)
-
-### WebCamT Experiments
-
-Running WebCamT experiments can be done:
-- Within the following notebooks: `notebooks\WebCamT.ipynb`
-
-### Superconductivity Experiments
-
-Running superconductivity experiments can be done in two ways:
-- In the command line with: `$ python wann\uci_experiments.py`
-- Within the following notebooks: `notebooks\UCI_experiments.ipynb`
-
-
-### Kin Experiments
-
-Running kin experiments can be done in two ways:
-- In the command line with: `$ python wann\kin_experiments.py`
-- Within the following notebooks: `notebooks\Kin_experiments.ipynb`
+The experiments are conducted on one synthetic and two benchmark datasets:
+- [CityCam](https://www.citycam-cmu.com/dataset)
+- [Sentiment analysis](https://www.cs.jhu.edu/~mdredze/datasets/sentiment/)
 
 

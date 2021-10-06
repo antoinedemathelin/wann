@@ -1,6 +1,7 @@
 """
 Weighting Adversarial Neural Network (WANN)
 """
+import copy
 
 import numpy as np
 import tensorflow as tf
@@ -16,30 +17,30 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.layers import Layer
 
 
-class _SavePrediction(Callback):  
-    """
-    Callbacks which stores predicted weights
-    and labels in history at each epoch.
-    """
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-        super().__init__()
+# class _SavePrediction(Callback):  
+#     """
+#     Callbacks which stores predicted weights
+#     and labels in history at each epoch.
+#     """
+#     def __init__(self, X, y):
+#         self.X = X
+#         self.y = y
+#         super().__init__()
             
-    def on_epoch_end(self, batch, logs={}):
-        """Applied at the end of each epoch"""
-        if "y_pred" not in self.model.history.history:
-            self.model.history.history["y_pred"] = []
-        if "weights" not in self.model.history.history:
-            self.model.history.history["weights"] = []
-        predictions = self.model.predict([self.X, self.X,
-                                          self.y, self.y, self.y])
-        self.model.history.history["y_pred"].append(
-        predictions[0].ravel()
-        )
-        self.model.history.history["weights"].append(
-        predictions[-1].ravel()
-        )
+#     def on_epoch_end(self, batch, logs={}):
+#         """Applied at the end of each epoch"""
+#         if "y_pred" not in self.model.history.history:
+#             self.model.history.history["y_pred"] = []
+#         if "weights" not in self.model.history.history:
+#             self.model.history.history["weights"] = []
+#         predictions = self.model.predict([self.X, self.X,
+#                                           self.y, self.y, self.y])
+#         self.model.history.history["y_pred"].append(
+#         predictions[0].ravel()
+#         )
+#         self.model.history.history["weights"].append(
+#         predictions[-1].ravel()
+#         )
 
 
 @tf.custom_gradient
@@ -204,9 +205,14 @@ class WANN(object):
 
         # Callback to save predicted weights and labels
         callbacks = []
-        if self.save_hist:
-            callbacks.append(_SavePrediction(X, y))
+        if "callbacks" in self.fit_params:
+            callbacks = self.fit_params["callbacks"]
+            del self.fit_params["callbacks"]
             
+        # Initialize weighting network
+        self.weights_predictor.compile(optimizer=copy.deepcopy(self.optimizer), loss="mse") #copy.deepcopy(self.optimizer)
+        self.weights_predictor.fit(X[src_index], np.ones(len(src_index)), **self.fit_params)
+        
         # Fit
         self.model.fit([X[resize_src_ind], X[resize_tgt_ind],
                         y[resize_src_ind], y[resize_tgt_ind],
@@ -256,7 +262,7 @@ class WANN(object):
         loss_disc_s = K.mean(multiply([weights_source, K.square(output_source - output_disc_s)]))
         loss_disc_t = K.mean(multiply([weights_target, K.square(output_target - output_disc_t)]))
             
-        loss_task = loss_task_s + loss_task_t
+        loss_task = loss_task_s #+ loss_task_t
         loss_disc = loss_disc_t - loss_disc_s
                          
         loss = loss_task + loss_disc
