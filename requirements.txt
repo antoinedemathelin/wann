@@ -1,0 +1,7 @@
+tensorflow>=2.0
+scikit-learn
+numpy
+pandas
+matplotlib
+nltk
+adapt
