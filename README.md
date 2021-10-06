@@ -13,14 +13,7 @@ Code for the numerical experiments requires the following packages:
 - `pandas`
 - `matplotlib`
 - `nltk`
-- `adapt` (https://github.com/adapt-python/adapt)
-
-
-The file `environment.yml` can be used to reproduce the same conda environment as the one used to conduct the experiments with the following command line:
-
-`$ conda env create -f environment.yml`
-
-> :warning: The environment has been built on Windows, it seems that the above command line does not work on Ubuntu. If you use this operating system, please create a new environment and install the above packages using `conda install` or `pip install`.
+- [`adapt`](https://github.com/adapt-python/adapt)
 
 ## Experiments
 
