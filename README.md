@@ -25,7 +25,7 @@ WANN algorithm is compared to several domain adaptation base-lines:
   - ADDA [Tzeng et al.](https://arxiv.org/pdf/1702.05464.pdf)
   - MDD [Zhang et al.](https://arxiv.org/pdf/1904.05801.pdf)
 
-The implementation of WANN can be found in the `wann\methods` folder.
+The implementation of WANN can be found in the `wann\methods` folder. The implementation of the base-lines come from the [ADAPT](https://github.com/adapt-python/adapt) library
 
 The experiments are conducted on one synthetic and two benchmark datasets:
 - [CityCam](https://www.citycam-cmu.com/dataset)
