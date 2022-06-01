@@ -1,6 +1,6 @@
 # WANN
 
-Weighting Adversarial Neural Network
+Weighting Adversarial Neural Network (paper link: https://arxiv.org/pdf/2006.08251.pdf)
 
 WANN is a supervised domain adaptation method suited for regression tasks. The algorithm is an instance-based method which learns a reweighting of source instance losses in order to correct the difference between source and target distributions.
 
